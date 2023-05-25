@@ -1,0 +1,70 @@
+from flask import Flask, render_template, request, redirect
+
+app = Flask(__name__)
+
+# Database (In-memory for simplicity)
+users = {}
+
+
+@app.route('/')
+def home():
+    return render_template('index.html')
+
+
+@app.route('/signup', methods=['GET', 'POST'])
+def signup():
+    if request.method == 'POST':
+        username = request.form['username']
+        password = request.form['password']
+        users[username] = {'password': password, 'goals': {}, 'progress': {}}
+        return redirect('/login')
+    return render_template('signup.html')
+
+
+@app.route('/login', methods=['GET', 'POST'])
+def login():
+    if request.method == 'POST':
+        username = request.form['username']
+        password = request.form['password']
+        if username in users and users[username]['password'] == password:
+            return redirect('/dashboard?user=' + username)
+        else:
+            return redirect('/login')
+    return render_template('login.html')
+
+
+@app.route('/dashboard')
+def dashboard():
+    username = request.args.get('user')
+    if username in users:
+        user_goals = users[username]['goals']
+        user_progress = users[username]['progress']
+        return render_template('dashboard.html', username=username, goals=user_goals, progress=user_progress)
+    else:
+        return redirect('/login')
+
+
+@app.route('/set_goal', methods=['POST'])
+def set_goal():
+    username = request.form['username']
+    category = request.form['category']
+    goal = int(request.form['goal'])
+    if username in users:
+        users[username]['goals'][category] = goal
+    return redirect('/dashboard?user=' + username)
+
+
+@app.route('/update_progress', methods=['POST'])
+def update_progress():
+    username = request.form['username']
+    category = request.form['category']
+    progress = int(request.form['progress'])
+    if username in users:
+        if category not in users[username]['progress']:
+            users[username]['progress'][category] = 0
+        users[username]['progress'][category] += progress
+    return redirect('/dashboard?user=' + username)
+
+
+if __name__ == '__main__':
+    app.run(debug=True)
